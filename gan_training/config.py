@@ -61,18 +61,14 @@ def build_models(config):
     Discriminator = discriminator_dict[config['discriminator']['name']]
 
     # Build models
-    generator = Generator(
-        z_dim=config['z_dist']['dim'],
-        nlabels=config['data']['nlabels'],
-        size=config['data']['img_size'],
-        **config['generator']['kwargs']
-    )
-    discriminator = Discriminator(
-        config['discriminator']['name'],
-        nlabels=config['data']['nlabels'],
-        size=config['data']['img_size'],
-        **config['discriminator']['kwargs']
-    )
+    generator = Generator(z_dim=config['z_dist']['dim'],
+                          nlabels=config['data']['nlabels'],
+                          size=config['data']['img_size'],
+                          **config['generator']['kwargs'])
+    discriminator = Discriminator(config['discriminator']['name'],
+                                  nlabels=config['data']['nlabels'],
+                                  size=config['data']['img_size'],
+                                  **config['discriminator']['kwargs'])
 
     return generator, discriminator
 
@@ -83,8 +79,8 @@ def build_optimizers(generator, discriminator, config):
     lr_d = config['training']['lr_d']
     equalize_lr = config['training']['equalize_lr']
 
-    toogle_grad(generator, True)
-    toogle_grad(discriminator, True)
+    toggle_grad(generator, True)
+    toggle_grad(discriminator, True)
 
     if equalize_lr:
         g_gradient_scales = getattr(generator, 'gradient_scales', dict())
@@ -103,7 +99,11 @@ def build_optimizers(generator, discriminator, config):
     # Optimizers
     if optimizer == 'rmsprop':
         g_optimizer = optim.RMSprop(g_params, lr=lr_g, alpha=0.99, eps=1e-8)
-        d_optimizer = optim.RMSprop(d_params, lr=lr_d, alpha=0.99, eps=1e-8)
+        d_optimizer = optim.RMSprop(d_params,
+                                    lr=lr_d,
+                                    alpha=0.99,
+                                    eps=1e-8,
+                                    momentum=config['training']['momentum_d'])
     elif optimizer == 'adam':
         g_optimizer = optim.Adam(g_params, lr=lr_g, betas=(0., 0.99), eps=1e-8)
         d_optimizer = optim.Adam(d_params, lr=lr_d, betas=(0., 0.99), eps=1e-8)
@@ -119,8 +119,7 @@ def build_lr_scheduler(optimizer, config, last_epoch=-1):
         optimizer,
         step_size=config['training']['lr_anneal_every'],
         gamma=config['training']['lr_anneal'],
-        last_epoch=last_epoch
-    )
+        last_epoch=last_epoch)
     return lr_scheduler
 
 
@@ -129,8 +128,5 @@ def get_parameter_groups(parameters, gradient_scales, base_lr):
     param_groups = []
     for p in parameters:
         c = gradient_scales.get(p, 1.)
-        param_groups.append({
-            'params': [p],
-            'lr': c * base_lr
-        })
+        param_groups.append({'params': [p], 'lr': c * base_lr})
     return param_groups

@@ -19,7 +19,7 @@ class Trainer(object):
         self.reg_param = reg_param
 
     def generator_trainstep(self, y, z):
-        assert(y.size(0) == z.size(0))
+        assert (y.size(0) == z.size(0))
         toggle_grad(self.generator, True)
         toggle_grad(self.discriminator, False)
         self.generator.train()
@@ -74,7 +74,8 @@ class Trainer(object):
             reg = self.reg_param * self.wgan_gp_reg(x_real, x_fake, y)
             reg.backward()
         elif self.reg_type == 'wgangp0':
-            reg = self.reg_param * self.wgan_gp_reg(x_real, x_fake, y, center=0.)
+            reg = self.reg_param * self.wgan_gp_reg(
+                x_real, x_fake, y, center=0.)
             reg.backward()
 
         self.d_optimizer.step()
@@ -84,7 +85,7 @@ class Trainer(object):
         # Output
         dloss = (dloss_real + dloss_fake)
 
-        if self.reg_type == 'none':
+        if self.reg_type.lower() == 'none':
             reg = torch.tensor(0.)
 
         return dloss.item(), reg.item()
@@ -95,7 +96,7 @@ class Trainer(object):
         if self.gan_type == 'standard':
             loss = F.binary_cross_entropy_with_logits(d_out, targets)
         elif self.gan_type == 'wgan':
-            loss = (2*target - 1) * d_out.mean()
+            loss = (2 * target - 1) * d_out.mean()
         else:
             raise NotImplementedError
 
@@ -122,12 +123,13 @@ def toggle_grad(model, requires_grad):
 
 def compute_grad2(d_out, x_in):
     batch_size = x_in.size(0)
-    grad_dout = autograd.grad(
-        outputs=d_out.sum(), inputs=x_in,
-        create_graph=True, retain_graph=True, only_inputs=True
-    )[0]
+    grad_dout = autograd.grad(outputs=d_out.sum(),
+                              inputs=x_in,
+                              create_graph=True,
+                              retain_graph=True,
+                              only_inputs=True)[0]
     grad_dout2 = grad_dout.pow(2)
-    assert(grad_dout2.size() == x_in.size())
+    assert (grad_dout2.size() == x_in.size())
     reg = grad_dout2.view(batch_size, -1).sum(1)
     return reg
 
@@ -140,5 +142,5 @@ def update_average(model_tgt, model_src, beta):
 
     for p_name, p_tgt in model_tgt.named_parameters():
         p_src = param_dict_src[p_name]
-        assert(p_src is not p_tgt)
-        p_tgt.copy_(beta*p_tgt + (1. - beta)*p_src)
+        assert (p_src is not p_tgt)
+        p_tgt.copy_(beta * p_tgt + (1. - beta) * p_src)

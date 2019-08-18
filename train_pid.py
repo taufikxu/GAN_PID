@@ -1,13 +1,17 @@
+import torch
+torch.manual_seed(0)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
 import argparse
 import os
 from os import path
 import time
 import copy
 import shutil
-import torch
 from torch import nn
 from gan_training import utils
-from gan_training.train import Trainer, update_average
+from gan_training.train_pid import Trainer, update_average
 from gan_training.logger import Logger
 from gan_training.checkpoints import CheckpointIO
 from gan_training.inputs import get_dataset
@@ -166,7 +170,12 @@ trainer = Trainer(generator,
                   d_optimizer,
                   gan_type=config['training']['gan_type'],
                   reg_type=config['training']['reg_type'],
-                  reg_param=config['training']['reg_param'])
+                  reg_param=config['training']['reg_param'],
+                  pv=config['training']['pv'],
+                  iv=config['training']['iv'],
+                  dv=config['training']['dv'],
+                  batch_size=config['training']['batch_size'],
+                  config=config)
 
 # Training loop
 print('Start training...')
@@ -189,9 +198,10 @@ while True:
 
         # Discriminator updates
         z = zdist.sample((batch_size, ))
-        dloss, reg = trainer.discriminator_trainstep(x_real, y, z)
+        dloss, dl, il = trainer.discriminator_trainstep(x_real, y, z, it)
         logger.add('losses', 'discriminator', dloss, it=it)
-        logger.add('losses', 'regularizer', reg, it=it)
+        logger.add('losses', 'd_loss', dl, it=it)
+        logger.add('losses', 'i_loss', il, it=it)
 
         # Generators updates
         if ((it + 1) % d_steps) == 0:
@@ -205,13 +215,14 @@ while True:
                                beta=config['training']['model_average_beta'])
 
         # Print stats
-        if it % 100 == 0:
+        if it % 10 == 0:
             g_loss_last = logger.get_last('losses', 'generator')
             d_loss_last = logger.get_last('losses', 'discriminator')
-            d_reg_last = logger.get_last('losses', 'regularizer')
+            dl_last = logger.get_last('losses', 'd_loss')
+            il_last = logger.get_last('losses', 'i_loss')
             text_logger.info(
-                '[epoch %0d, it %4d] g_loss = %.4f, d_loss = %.4f, reg=%.4f' %
-                (epoch_idx, it, g_loss_last, d_loss_last, d_reg_last))
+                '[epoch %0d, it %4d] g_loss = %9.4f, d_loss = %9.4f, dl=%9.4f, il=%9.4f'
+                % (epoch_idx, it, g_loss_last, d_loss_last, dl_last, il_last))
 
         # (i) Sample if necessary
         if (it % config['training']['sample_every']) == 0:

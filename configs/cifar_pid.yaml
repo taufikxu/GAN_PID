@@ -1,0 +1,60 @@
+data:
+  type: cifar10
+  train_dir: ./data/
+  test_dir: ./data/
+  lsun_categories_train: bedroom_train
+  lsun_categories_test: bedroom_test
+  img_size: 32
+generator:
+  name: resnet1 # fix it to 1: the normal resnet
+  kwargs:
+    nfilter: 32
+    nfilter_max: 256
+discriminator:
+  name: resnet1 # fix it to 1: the normal resnet
+  kwargs:
+    nfilter: 32
+    nfilter_max: 256
+z_dist:
+  type: gauss
+  dim: 256
+training:
+  gan_type: wgan
+  reg_type: none
+  reg_param: 0.
+  nworkers: 32
+  take_model_average: true
+  model_average_beta: 0.999
+  model_average_reinit: false
+  monitoring: tensorboard
+  sample_every: 1000
+  inception_every: 100000
+  save_every: 900
+  backup_every: 100000
+  restart_every: -1
+  optimizer: rmsprop
+  batch_size: 64 ### 
+  lr_g: 0.0001
+  lr_d: 0.0001
+  out_dir: output/cifar_nopid
+  pv: 10.
+  iv: 0.
+  dv: 0.
+  momentum_d: 0. ###
+  clip_d: 0. ###
+  weight_decay_d: 0.000 ###
+  regularize_output_d: 0.1 ###
+  lr_anneal: 1.
+  lr_anneal_every: 150000
+  d_steps: 1
+  equalize_lr: false
+test:
+  batch_size: 32
+  sample_size: 15
+  sample_nrow: 5
+  use_model_average: true
+  compute_inception: false
+  conditional_samples: false
+interpolations:
+  nzs: 10
+  nsubsteps: 75
