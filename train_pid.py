@@ -1,29 +1,28 @@
-import torch
-torch.manual_seed(0)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
-
-import argparse
-import os
-from os import path
-import time
-import copy
-import shutil
-from torch import nn
-from gan_training import utils
-from gan_training.train_pid import Trainer, update_average
-from gan_training.logger import Logger
-from gan_training.checkpoints import CheckpointIO
-from gan_training.inputs import get_dataset
-from gan_training.distributions import get_ydist, get_zdist
-from gan_training.eval import Evaluator
+import utils_log
 from gan_training.config import (
     load_config,
     build_models,
     build_optimizers,
     build_lr_scheduler,
 )
-import utils_log
+from gan_training.eval import Evaluator
+from gan_training.distributions import get_ydist, get_zdist
+from gan_training.inputs import get_dataset
+from gan_training.checkpoints import CheckpointIO
+from gan_training.logger import Logger
+from gan_training.train_pid import Trainer, update_average
+from gan_training import utils
+from torch import nn
+import shutil
+import copy
+import time
+from os import path
+import os
+import argparse
+import torch
+torch.manual_seed(0)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 # Arguments
 parser = argparse.ArgumentParser(
@@ -45,8 +44,9 @@ save_every = config['training']['save_every']
 backup_every = config['training']['backup_every']
 sample_nlabels = config['training']['sample_nlabels']
 
-out_dir = "{}_{}_{}".format(config['training']['out_dir'], args.key,
-                            time.strftime("%Y-%m-%d-%H-%M-%S"))
+out_dir = "{}{}_{}_{}".format(config['training']['out_dir'],
+                              time.strftime("%Y-%m-%d-%H-%M-%S"),
+                              config['training']['out_basename'], args.key)
 checkpoint_dir = path.join(out_dir, 'chkpts')
 
 # Create missing directories
@@ -66,7 +66,8 @@ train_dataset, nlabels = get_dataset(
     name=config['data']['type'],
     data_dir=config['data']['train_dir'],
     size=config['data']['img_size'],
-    lsun_categories=config['data']['lsun_categories_train'])
+    lsun_categories=config['data']['lsun_categories_train'],
+    config=config)
 train_loader = torch.utils.data.DataLoader(
     train_dataset,
     batch_size=batch_size,
@@ -75,6 +76,7 @@ train_loader = torch.utils.data.DataLoader(
     pin_memory=True,
     sampler=None,
     drop_last=True)
+toy_data = config['data']['type'].lower() in ['mog']
 
 # Number of labels
 nlabels = min(nlabels, config['data']['nlabels'])
@@ -120,12 +122,11 @@ zdist = get_zdist(config['z_dist']['type'],
                   config['z_dist']['dim'],
                   device=device)
 
-# Save for tests
-ntest = batch_size
-x_real, ytest = utils.get_nsamples(train_loader, ntest)
+ntest = batch_size if toy_data is False else 20000
+x_real_test, ytest = utils.get_nsamples(train_loader, ntest)
 ytest.clamp_(None, nlabels - 1)
 ztest = zdist.sample((ntest, ))
-utils.save_images(x_real, path.join(out_dir, 'real.png'))
+utils.save_images(x_real_test, path.join(out_dir, 'real.png'))
 
 # Test generator
 if config['training']['take_model_average']:
@@ -215,7 +216,7 @@ while True:
                                beta=config['training']['model_average_beta'])
 
         # Print stats
-        if it % 10 == 0:
+        if it % 100 == 0:
             g_loss_last = logger.get_last('losses', 'generator')
             d_loss_last = logger.get_last('losses', 'discriminator')
             dl_last = logger.get_last('losses', 'd_loss')
@@ -227,7 +228,10 @@ while True:
         # (i) Sample if necessary
         if (it % config['training']['sample_every']) == 0:
             print('Creating samples...')
-            x = evaluator.create_samples(ztest, ytest)
+            x = evaluator.create_samples(ztest,
+                                         ytest,
+                                         toy=toy_data,
+                                         x_real=x_real_test)
             logger.add_imgs(x, 'all', it)
             for y_inst in range(sample_nlabels):
                 x = evaluator.create_samples(ztest, y_inst)
@@ -238,16 +242,19 @@ while True:
             inception_mean, inception_std = evaluator.compute_inception_score()
             logger.add('inception_score', 'mean', inception_mean, it=it)
             logger.add('inception_score', 'stddev', inception_std, it=it)
+            text_logger.info(
+                '[epoch %0d, it %4d] inception_mean: %.4f, inception_std: %.4f'
+                % (epoch_idx, it, inception_mean, inception_std))
 
         # (iii) Backup if necessary
         if ((it + 1) % backup_every) == 0:
-            print('Saving backup...')
+            text_logger.info('Saving backup...')
             checkpoint_io.save('model_%08d.pt' % it, it=it)
             logger.save_stats('stats_%08d.p' % it)
 
         # (iv) Save checkpoint if necessary
         if time.time() - t0 > save_every:
-            print('Saving checkpoint...')
+            text_logger.info('Saving checkpoint...')
             checkpoint_io.save(model_file, it=it)
             logger.save_stats('stats.p')
             t0 = time.time()

@@ -1,4 +1,5 @@
 from gan_training.models import (
+    mlp,
     resnet,
     resnet1,
     resnet2,
@@ -7,6 +8,7 @@ from gan_training.models import (
 )
 
 generator_dict = {
+    'mlp1': mlp.Generator,
     'resnet': resnet.Generator,
     'resnet1': resnet1.Generator,
     'resnet2': resnet2.Generator,
@@ -15,6 +17,7 @@ generator_dict = {
 }
 
 discriminator_dict = {
+    'mlp1': mlp.Discriminator,
     'resnet': resnet.Discriminator,
     'resnet1': resnet.Discriminator,
     'resnet2': resnet2.Discriminator,

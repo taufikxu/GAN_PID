@@ -21,11 +21,17 @@ z_dist:
   type: gauss
   dim: 256
 training:
-  out_dir: output/lsun_bedroom
   gan_type: wgan
-  reg_type: real
-  reg_param: 10.
-  momentum_d: 0.
+  reg_type: none
+  reg_param: 0.
+  out_dir: output/lsun_bedroom
+  pv: 1.
+  iv: 0.
+  dv: 0.
+  momentum_d: 0. ###
+  clip_d: 0. ###
+  weight_decay_d: 0.0001 ###
+  regularize_output_d: 10. ###
   batch_size: 16
   nworkers: 16
   take_model_average: true
@@ -34,10 +40,10 @@ training:
   monitoring: tensorboard
   sample_every: 1000
   sample_nlabels: 20
-  inception_every: -1 
+  inception_every: 10000
   save_every: 900
   backup_every: 100000
-  restart_every: 10000
+  restart_every: -1
   optimizer: rmsprop
   lr_g: 0.0001
   lr_d: 0.0001

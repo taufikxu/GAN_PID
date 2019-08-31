@@ -41,8 +41,10 @@ save_every = config['training']['save_every']
 backup_every = config['training']['backup_every']
 sample_nlabels = config['training']['sample_nlabels']
 
-out_dir = "{}_{}_{}".format(config['training']['out_dir'], args.key,
-                            time.strftime("%Y-%m-%d-%H-%M-%S"))
+out_dir = "{}{}_{}_{}".format(config['training']['out_dir'],
+                              time.strftime("%Y-%m-%d-%H-%M-%S"),
+                              config['training']['out_basename'], args.key)
+
 checkpoint_dir = path.join(out_dir, 'chkpts')
 
 # Create missing directories
@@ -62,7 +64,8 @@ train_dataset, nlabels = get_dataset(
     name=config['data']['type'],
     data_dir=config['data']['train_dir'],
     size=config['data']['img_size'],
-    lsun_categories=config['data']['lsun_categories_train'])
+    lsun_categories=config['data']['lsun_categories_train'],
+    config=config)
 train_loader = torch.utils.data.DataLoader(
     train_dataset,
     batch_size=batch_size,
@@ -227,16 +230,19 @@ while True:
             inception_mean, inception_std = evaluator.compute_inception_score()
             logger.add('inception_score', 'mean', inception_mean, it=it)
             logger.add('inception_score', 'stddev', inception_std, it=it)
+            text_logger.info(
+                '[epoch %0d, it %4d] inception_mean: %.4f, inception_std: %.4f'
+                % (epoch_idx, it, inception_mean, inception_std))
 
         # (iii) Backup if necessary
         if ((it + 1) % backup_every) == 0:
-            print('Saving backup...')
+            text_logger.info('Saving backup...')
             checkpoint_io.save('model_%08d.pt' % it, it=it)
             logger.save_stats('stats_%08d.p' % it)
 
         # (iv) Save checkpoint if necessary
         if time.time() - t0 > save_every:
-            print('Saving checkpoint...')
+            text_logger.info('Saving checkpoint...')
             checkpoint_io.save(model_file, it=it)
             logger.save_stats('stats.p')
             t0 = time.time()

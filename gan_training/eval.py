@@ -1,10 +1,21 @@
 import torch
+from torchvision import transforms
 from gan_training.metrics import inception_score
+import matplotlib
+from matplotlib import pyplot as plt
+import PIL
+
+matplotlib.use("Agg")
 
 
 class Evaluator(object):
-    def __init__(self, generator, zdist, ydist, batch_size=64,
-                 inception_nsamples=60000, device=None):
+    def __init__(self,
+                 generator,
+                 zdist,
+                 ydist,
+                 batch_size=64,
+                 inception_nsamples=60000,
+                 device=None):
         self.generator = generator
         self.zdist = zdist
         self.ydist = ydist
@@ -15,31 +26,73 @@ class Evaluator(object):
     def compute_inception_score(self):
         self.generator.eval()
         imgs = []
-        while(len(imgs) < self.inception_nsamples):
-            ztest = self.zdist.sample((self.batch_size,))
-            ytest = self.ydist.sample((self.batch_size,))
+        while (len(imgs) < self.inception_nsamples):
+            ztest = self.zdist.sample((self.batch_size, ))
+            ytest = self.ydist.sample((self.batch_size, ))
 
             samples = self.generator(ztest, ytest)
             samples = [s.data.cpu().numpy() for s in samples]
             imgs.extend(samples)
 
         imgs = imgs[:self.inception_nsamples]
-        score, score_std = inception_score(
-            imgs, device=self.device, resize=True, splits=10
-        )
+        score, score_std = inception_score(imgs,
+                                           device=self.device,
+                                           resize=True,
+                                           splits=10)
 
         return score, score_std
 
-    def create_samples(self, z, y=None):
-        self.generator.eval()
-        batch_size = z.size(0)
-        # Parse y
-        if y is None:
-            y = self.ydist.sample((batch_size,))
-        elif isinstance(y, int):
-            y = torch.full((batch_size,), y,
-                           device=self.device, dtype=torch.int64)
-        # Sample x
-        with torch.no_grad():
-            x = self.generator(z, y)
-        return x
+    def create_samples(self, z, y=None, toy=False, x_real=None):
+        if toy is False:
+            self.generator.eval()
+            batch_size = z.size(0)
+            # Parse y
+            if y is None:
+                y = self.ydist.sample((batch_size, ))
+            elif isinstance(y, int):
+                y = torch.full((batch_size, ),
+                               y,
+                               device=self.device,
+                               dtype=torch.int64)
+            # Sample x
+            with torch.no_grad():
+                x = self.generator(z, y)
+            return x
+        else:
+            z_sample = self.zdist.sample((10000, ))
+            y_sample = self.ydist.sample((10000, ))
+            y_sample = torch.clamp(y_sample, None, 0)
+            with torch.no_grad():
+                x_fake = self.generator(z_sample, y_sample)
+
+            np_samples_data = x_real.data.cpu().numpy()
+            np_samples_gen = x_fake.data.cpu().numpy()
+
+            fig = plt.figure(figsize=(5, 5))
+            plt.scatter(np_samples_data[:, 0],
+                        np_samples_data[:, 1],
+                        s=8,
+                        c='r',
+                        edgecolor='none',
+                        alpha=0.05)
+            plt.scatter(np_samples_gen[:, 0],
+                        np_samples_gen[:, 1],
+                        s=8,
+                        c='b',
+                        edgecolor='none',
+                        alpha=0.05)
+            plt.xlim((-3, 3))
+            plt.ylim((-3, 3))
+            plt.grid(True)
+            plt.tight_layout()
+
+            canvas = plt.get_current_fig_manager().canvas
+            canvas.draw()
+            pil_image = PIL.Image.frombytes('RGB', canvas.get_width_height(),
+                                            canvas.tostring_rgb())
+            plt.close()
+            plt.close(fig)
+
+            img_tensor = transforms.ToTensor()(pil_image)
+            img_tensor = torch.unsqueeze(img_tensor, 0)
+            return img_tensor

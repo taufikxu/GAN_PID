@@ -3,6 +3,7 @@ from torch import optim
 from os import path
 from gan_training.models import generator_dict, discriminator_dict
 from gan_training.train import toggle_grad
+from gan_training.pid_optimizer import PID_RMSprop
 
 
 # General config
@@ -99,11 +100,23 @@ def build_optimizers(generator, discriminator, config):
     # Optimizers
     if optimizer == 'rmsprop':
         g_optimizer = optim.RMSprop(g_params, lr=lr_g, alpha=0.99, eps=1e-8)
-        d_optimizer = optim.RMSprop(d_params,
-                                    lr=lr_d,
-                                    alpha=0.99,
-                                    eps=1e-8,
-                                    momentum=config['training']['momentum_d'])
+        d_optimizer = optim.RMSprop(d_params, lr=lr_d, alpha=0.99, eps=1e-8)
+    elif optimizer == 'rmsprop-pid':
+        g_optimizer = optim.RMSprop(
+            g_params,
+            lr=lr_g,
+            alpha=0.99,
+            eps=1e-8,
+            weight_decay=config['training']['weight_decay_g'])
+        d_optimizer = PID_RMSprop(
+            d_params,
+            lr=lr_d,
+            alpha=0.99,
+            eps=1e-8,
+            vp=config['training']['optimizer-vp'],
+            vi=config['training']['optimizer-vi'],
+            vd=config['training']['optimizer-vd'],
+        )
     elif optimizer == 'adam':
         g_optimizer = optim.Adam(g_params, lr=lr_g, betas=(0., 0.99), eps=1e-8)
         d_optimizer = optim.Adam(d_params, lr=lr_d, betas=(0., 0.99), eps=1e-8)

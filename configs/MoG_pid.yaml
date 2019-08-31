@@ -1,49 +1,58 @@
 data:
-  type: cifar10
+  type: MoG
   train_dir: ./data/
   test_dir: ./data/
   lsun_categories_train: bedroom_train
   lsun_categories_test: bedroom_test
-  img_size: 32
+  img_size: 2
+  shape: ring
+  num_mixture: 8
+  radius: 1.
+  std: 0.01
+
+  # shape: grid
+  # num_mixture: 25
+  # radius: 2
+  # std: 0.01
 generator:
-  name: resnet1 # fix it to 1: the normal resnet
+  name: mlp1
   kwargs:
     nfilter: 32
     nfilter_max: 256
 discriminator:
-  name: resnet1 # fix it to 1: the normal resnet
+  name: mlp1
   kwargs:
     nfilter: 32
     nfilter_max: 256
 z_dist:
   type: gauss
-  dim: 256
+  dim: 32
 training:
-  gan_type: wgan
+  gan_type: standard
   reg_type: none
-  reg_param: 0.
-  nworkers: 32
+  reg_param: 10.
+  nworkers: 1
   take_model_average: true
   model_average_beta: 0.999
   model_average_reinit: false
   monitoring: tensorboard
   sample_every: 1000
-  inception_every: 10000
+  inception_every: -1
   save_every: 900
-  backup_every: 100000
+  backup_every: 1000000
   restart_every: -1
   optimizer: rmsprop
   batch_size: 64 ### 
   lr_g: 0.0001
   lr_d: 0.0001
   out_dir: output/
-  out_basename: cifar_pid_
-  pid_type: lsgan
+  out_basename: MoG_baseline
+  pid_type: none
   pv: 1.
-  iv: 10.
+  iv: 0.
   dv: 0.
   i_size: 64
-  i_buffer_factor: 100
+  i_buffer_factor: 1000
   i_buffer_onestep: 10
   momentum_d: 0. ###
   clip_d: 0. ###
@@ -54,7 +63,7 @@ training:
   d_steps: 1
   equalize_lr: false
 test:
-  batch_size: 32
+  batch_size: 64
   sample_size: 15
   sample_nrow: 5
   use_model_average: true
