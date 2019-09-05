@@ -20,9 +20,9 @@ z_dist:
   dim: 256
 training:
   out_dir: output/
-  out_basename: cifar_baseline_wganreal
-  gan_type: wgan
-  reg_type: real
+  out_basename: cifar_baseline
+  gan_type: standard
+  reg_type: none
   reg_param: 10.
   batch_size: 64
   nworkers: 32

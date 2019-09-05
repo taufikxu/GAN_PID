@@ -5,6 +5,7 @@ import torch.utils.data
 import torch.utils.data.distributed
 from torch import autograd
 import numpy as np
+from gan_training.random_queue import Random_queue
 
 
 class Trainer(object):
@@ -44,6 +45,15 @@ class Trainer(object):
         self.time_step = time_step
         self.batch_size = batch_size
         self.config = config
+        self.i_real_queue = Random_queue(
+            config['training']['batch_size'] *
+            config['training']['i_buffer_factor'],
+            config['training']['batch_size'])
+
+        self.i_fake_queue = Random_queue(
+            config['training']['batch_size'] *
+            config['training']['i_buffer_factor'],
+            config['training']['batch_size'])
 
     def generator_trainstep(self, y, z):
         assert (y.size(0) == z.size(0))
@@ -55,7 +65,7 @@ class Trainer(object):
 
         x_fake = self.generator(z, y)
         d_fake = self.discriminator(x_fake, y)
-        gloss = self.compute_loss(d_fake, 1)
+        gloss = self.compute_loss(d_fake, 1, is_generator=True)
         gloss.backward()
 
         self.g_optimizer.step()
@@ -89,44 +99,55 @@ class Trainer(object):
 
         i_loss = torch.from_numpy(np.array([0.]))
         if self.iv > 0 and it > 0:
-            i_factor = self.config['training']['i_buffer_factor']
+            # i_factor = self.config['training']['i_buffer_factor']
             i_store = self.config['training']['i_buffer_onestep']
+            # if self.i_xreal is None:
+            #     self.i_xreal = x_real.cpu().detach().numpy()
+            #     self.i_y = y.cpu().detach().numpy()
+            #     self.i_xfake = x_fake.cpu().detach().numpy()
+            # else:
+            #     # self.i_xreal = torch.cat([x_real, self.i_xreal], 0)
+            #     self.i_xreal = np.concatenate(
+            #         [x_real.cpu().detach().numpy()[:i_store], self.i_xreal], 0)
+            #     self.i_xreal = self.i_xreal[:self.batch_size * i_factor]
+
+            #     self.i_xfake = np.concatenate(
+            #         [x_fake.cpu().detach().numpy()[:i_store], self.i_xfake], 0)
+            #     self.i_xfake = self.i_xfake[:self.batch_size * i_factor]
+
+            #     self.i_y = np.concatenate(
+            #         [y.cpu().detach().numpy()[:i_store], self.i_y], 0)
+            #     self.i_y = self.i_y[:self.batch_size * i_factor]
+
+            # i_size = self.config['training']['i_size']
+            # if i_size > 0:
+            #     index = np.random.permutation(self.i_y.shape[0])
+            #     self.i_y = self.i_y[index]
+            #     self.i_xreal = self.i_xreal[index]
+            #     self.i_xfake = self.i_xfake[index]
+
+            #     i_y = self.i_y[:i_size]
+            #     i_xreal = self.i_xreal[:i_size]
+            #     i_xfake = self.i_xfake[:i_size]
+            # else:
+            #     i_y = self.i_y
+            #     i_xreal = self.i_xreal
+            #     i_xfake = self.i_xfake
             if self.i_xreal is None:
-                self.i_xreal = x_real.cpu().detach().numpy()
-                self.i_y = y.cpu().detach().numpy()
-                self.i_xfake = x_fake.cpu().detach().numpy()
+                self.i_real_queue.set_data(x_real.cpu().detach().numpy())
+                self.i_fake_queue.set_data(x_fake.cpu().detach().numpy())
             else:
-                # self.i_xreal = torch.cat([x_real, self.i_xreal], 0)
-                self.i_xreal = np.concatenate(
-                    [x_real.cpu().detach().numpy()[:i_store], self.i_xreal], 0)
-                self.i_xreal = self.i_xreal[:self.batch_size * i_factor]
+                self.i_real_queue.set_data(
+                    x_real.cpu().detach().numpy()[:i_store])
+                self.i_fake_queue.set_data(
+                    x_fake.cpu().detach().numpy()[:i_store])
+            i_xreal = self.i_real_queue.get_data()
+            i_xfake = self.i_fake_queue.get_data()
 
-                self.i_xfake = np.concatenate(
-                    [x_fake.cpu().detach().numpy()[:i_store], self.i_xfake], 0)
-                self.i_xfake = self.i_xfake[:self.batch_size * i_factor]
-
-                self.i_y = np.concatenate(
-                    [y.cpu().detach().numpy()[:i_store], self.i_y], 0)
-                self.i_y = self.i_y[:self.batch_size * i_factor]
-
-            i_size = self.config['training']['i_size']
-            if i_size > 0:
-                index = np.random.permutation(self.i_y.shape[0])
-                self.i_y = self.i_y[index]
-                self.i_xreal = self.i_xreal[index]
-                self.i_xfake = self.i_xfake[index]
-
-                i_y = self.i_y[:i_size]
-                i_xreal = self.i_xreal[:i_size]
-                i_xfake = self.i_xfake[:i_size]
-            else:
-                i_y = self.i_y
-                i_xreal = self.i_xreal
-                i_xfake = self.i_xfake
-
-            i_y = torch.from_numpy(i_y).cuda()
+            # i_y = torch.from_numpy(i_y).cuda()
             i_xreal = torch.from_numpy(i_xreal).cuda()
             i_xfake = torch.from_numpy(i_xfake).cuda()
+            i_y = y
 
             i_real_doutput = self.discriminator(i_xreal, i_y)
             i_loss_real = self.compute_loss(i_real_doutput, 1)
@@ -141,18 +162,21 @@ class Trainer(object):
             i_loss.backward()
 
         d_loss = torch.from_numpy(np.array([0.]))
+        # print(self.dv)
         if self.dv > 0 and it > 0:
             if self.d_xfake is None:
                 self.d_xfake = x_fake
                 self.d_previous_z = z
                 self.d_previous_y = y
             else:
-                with torch.no_grad():
-                    d_current_xfake = self.generator(self.d_previous_z,
-                                                     self.d_previous_y)
+                # with torch.no_grad():
+                #     d_current_xfake = self.generator(self.d_previous_z,
+                #                                      self.d_previous_y)
+                # d_loss_current = self.compute_loss(
+                #     self.discriminator(d_current_xfake, self.d_previous_y), 0)
+
                 d_loss_current = self.compute_loss(
-                    self.discriminator(d_current_xfake, self.d_previous_y), 0)
-                # d_loss_current = self.compute_loss(x_fake, 0)
+                    self.discriminator(x_fake, y), 0)
                 d_loss_previous = self.compute_loss(
                     self.discriminator(self.d_xfake, self.d_previous_y), 1)
                 d_loss = (d_loss_current + d_loss_previous) * self.dv
@@ -176,15 +200,20 @@ class Trainer(object):
 
         return dloss.item(), d_loss.item(), i_loss.item()
 
-    def compute_loss(self, d_out, target):
+    def compute_loss(self, d_out, target, is_generator=False):
         targets = d_out.new_full(size=d_out.size(), fill_value=target)
 
         if self.gan_type == 'standard':
             loss = F.binary_cross_entropy_with_logits(d_out, targets)
         elif self.gan_type == 'wgan':
             loss = (2 * target - 1) * d_out.mean()
-        elif self.gan_type == 'lsgan':
-            target = target * 2 - 1
+        elif self.gan_type == 'lsgan1':
+            if is_generator is False:
+                target = target * 2 - 1
+                loss = ((d_out - target)**2).mean()
+            else:
+                loss = (d_out**2).mean()
+        elif self.gan_type == 'lsgan2':
             loss = ((d_out - target)**2).mean()
         else:
             raise NotImplementedError

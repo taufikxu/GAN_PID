@@ -4,6 +4,7 @@ from gan_training.metrics import inception_score
 import matplotlib
 from matplotlib import pyplot as plt
 import PIL
+import numpy as np
 
 matplotlib.use("Agg")
 
@@ -42,7 +43,12 @@ class Evaluator(object):
 
         return score, score_std
 
-    def create_samples(self, z, y=None, toy=False, x_real=None):
+    def create_samples(self,
+                       z,
+                       y=None,
+                       toy=False,
+                       x_real=None,
+                       contour_matrix=None):
         if toy is False:
             self.generator.eval()
             batch_size = z.size(0)
@@ -81,8 +87,9 @@ class Evaluator(object):
                         c='b',
                         edgecolor='none',
                         alpha=0.05)
-            plt.xlim((-3, 3))
-            plt.ylim((-3, 3))
+            show_range = 1.4
+            plt.xlim((-show_range, show_range))
+            plt.ylim((-show_range, show_range))
             plt.grid(True)
             plt.tight_layout()
 
@@ -95,4 +102,24 @@ class Evaluator(object):
 
             img_tensor = transforms.ToTensor()(pil_image)
             img_tensor = torch.unsqueeze(img_tensor, 0)
-            return img_tensor
+
+            fig = plt.figure(figsize=(5, 5))
+            n = 1000
+            x = np.arange(n)
+            y = np.arange(n)
+            X, Y = np.meshgrid(x, y)
+            cp = plt.contour(X, Y, contour_matrix, 20)
+            plt.clabel(cp, inline=True, fontsize=7)
+            canvas = plt.get_current_fig_manager().canvas
+            canvas.draw()
+            pil_image = PIL.Image.frombytes('RGB', canvas.get_width_height(),
+                                            canvas.tostring_rgb())
+            plt.close()
+            plt.close(fig)
+
+            contour_tensor = transforms.ToTensor()(pil_image)
+            contour_tensor = torch.unsqueeze(contour_tensor, 0)
+
+            final_tensor = torch.cat([img_tensor, contour_tensor], 0)
+
+            return final_tensor

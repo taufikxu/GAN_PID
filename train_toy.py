@@ -21,6 +21,7 @@ import os
 import argparse
 import torch
 import numpy as np
+from utils_log import MetricSaver
 
 torch.manual_seed(0)
 torch.backends.cudnn.deterministic = True
@@ -78,7 +79,7 @@ train_loader = torch.utils.data.DataLoader(
     pin_memory=True,
     sampler=None,
     drop_last=True)
-# toy_data = config['data']['type'].lower() in ['mog']
+toy_data = config['data']['type'].lower() in ['mog']
 
 # Number of labels
 nlabels = min(nlabels, config['data']['nlabels'])
@@ -115,6 +116,7 @@ logger = Logger(log_dir=path.join(out_dir, 'logs'),
                 img_dir=path.join(out_dir, 'imgs'),
                 monitoring=config['training']['monitoring'],
                 monitoring_dir=path.join(out_dir, 'monitoring'))
+centers_logger = MetricSaver("centers", path.join(out_dir, "logs"))
 
 text_logger = utils_log.build_logger(out_dir)
 
@@ -124,11 +126,23 @@ zdist = get_zdist(config['z_dist']['type'],
                   config['z_dist']['dim'],
                   device=device)
 
-ntest = batch_size
+ntest = 20000
 x_real_test, ytest = utils.get_nsamples(train_loader, ntest)
 ytest.clamp_(None, nlabels - 1)
 ztest = zdist.sample((ntest, ))
-utils.save_images(x_real_test, path.join(out_dir, 'real.png'))
+
+grid = np.zeros([1000, 1000, 2])
+grid_range = [-1.4, 1.4]
+for i in range(1000):
+    for j in range(1000):
+        grid[i, j, 0] = (grid_range[1] -
+                         grid_range[0]) / 1000 * i + grid_range[0]
+        grid[i, j, 1] = (grid_range[1] -
+                         grid_range[0]) / 1000 * j + grid_range[0]
+grid = np.reshape(grid, [-1, 2]).astype(np.float32)
+grid = torch.from_numpy(grid).cuda()
+grid_y = np.zeros([1000 * 1000]).astype(np.int64)
+grid_y = torch.from_numpy(grid_y).cuda()
 
 # Test generator
 if config['training']['take_model_average']:
@@ -230,12 +244,22 @@ while True:
         # (i) Sample if necessary
         if (it % config['training']['sample_every']) == 0:
             print('Creating samples...')
-            x = evaluator.create_samples(ztest, ytest)
+            contour_matrix = discriminator(grid, grid_y)
+            contour_matrix = contour_matrix.data.cpu().numpy()
+            contour_matrix = contour_matrix.reshape([1000, 1000])
+            x = evaluator.create_samples(ztest,
+                                         ytest,
+                                         toy=toy_data,
+                                         x_real=x_real_test,
+                                         contour_matrix=contour_matrix)
             logger.add_imgs(x, 'all', it)
-            for y_inst in range(sample_nlabels):
-                x = evaluator.create_samples(ztest, y_inst)
-                logger.add_imgs(x, '%04d' % y_inst, it)
 
+            with torch.no_grad():
+                x = generator(ztest, ytest)
+            centers = torch.mean(x, 0)
+            centers = centers.data.cpu().numpy()
+            centers = np.sum(centers**2)
+            centers_logger.update(it, centers)
         # (ii) Compute inception if necessary
         if inception_every > 0 and ((it + 1) % inception_every) == 0:
             inception_mean, inception_std = evaluator.compute_inception_score()

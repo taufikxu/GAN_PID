@@ -66,7 +66,7 @@ def build_models(config):
                           nlabels=config['data']['nlabels'],
                           size=config['data']['img_size'],
                           **config['generator']['kwargs'])
-    discriminator = Discriminator(config['discriminator']['name'],
+    discriminator = Discriminator(config['z_dist']['dim'],
                                   nlabels=config['data']['nlabels'],
                                   size=config['data']['img_size'],
                                   **config['discriminator']['kwargs'])

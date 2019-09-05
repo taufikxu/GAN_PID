@@ -19,7 +19,7 @@ generator_dict = {
 discriminator_dict = {
     'mlp1': mlp.Discriminator,
     'resnet': resnet.Discriminator,
-    'resnet1': resnet.Discriminator,
+    'resnet1': resnet1.Discriminator,
     'resnet2': resnet2.Discriminator,
     'resnet3': resnet3.Discriminator,
     'resnet4': resnet4.Discriminator,

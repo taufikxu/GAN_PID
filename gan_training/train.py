@@ -28,7 +28,7 @@ class Trainer(object):
 
         x_fake = self.generator(z, y)
         d_fake = self.discriminator(x_fake, y)
-        gloss = self.compute_loss(d_fake, 1)
+        gloss = self.compute_loss(d_fake, 1, is_generator=True)
         gloss.backward()
 
         self.g_optimizer.step()
@@ -90,13 +90,21 @@ class Trainer(object):
 
         return dloss.item(), reg.item()
 
-    def compute_loss(self, d_out, target):
+    def compute_loss(self, d_out, target, is_generator=False):
         targets = d_out.new_full(size=d_out.size(), fill_value=target)
 
         if self.gan_type == 'standard':
             loss = F.binary_cross_entropy_with_logits(d_out, targets)
         elif self.gan_type == 'wgan':
             loss = (2 * target - 1) * d_out.mean()
+        elif self.gan_type == 'lsgan1':
+            if is_generator is False:
+                target = target * 2 - 1
+                loss = ((d_out - target)**2).mean()
+            else:
+                loss = (d_out**2).mean()
+        elif self.gan_type == 'lsgan2':
+            loss = ((d_out - target)**2).mean()
         else:
             raise NotImplementedError
 

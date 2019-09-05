@@ -15,7 +15,7 @@ class MixtureOfGaussianDataset(Dataset):
 
         self.centers = self.build_centers(self.shape, self.num_mixture,
                                           self.radius)
-        # print(self.centers)
+        self.rng = np.random.RandomState(1)
 
     def build_centers(self, shape, num_mixture, radius):
         if shape.lower() == "ring":
@@ -42,7 +42,7 @@ class MixtureOfGaussianDataset(Dataset):
     def __getitem__(self, index):
         index = np.random.randint(0, self.num_mixture)
         center = self.centers[index]
-        sample = np.random.normal(size=center.shape) * self.std + center
+        sample = self.rng.normal(size=center.shape) * self.std + center
         # print(sample, type(sample), sample.dtype, sample.shape)
         sample = torch.from_numpy(sample.astype(np.float32))
         return sample, torch.from_numpy(np.array([0]))

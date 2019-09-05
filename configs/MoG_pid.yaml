@@ -8,7 +8,7 @@ data:
   shape: ring
   num_mixture: 8
   radius: 1.
-  std: 0.01
+  std: 0.1
 
   # shape: grid
   # num_mixture: 25
@@ -28,11 +28,11 @@ z_dist:
   type: gauss
   dim: 32
 training:
-  gan_type: standard
+  gan_type: wgan
   reg_type: none
-  reg_param: 10.
-  nworkers: 1
-  take_model_average: true
+  reg_param: 0.
+  nworkers: 0
+  take_model_average: false
   model_average_beta: 0.999
   model_average_reinit: false
   monitoring: tensorboard
@@ -42,17 +42,17 @@ training:
   backup_every: 1000000
   restart_every: -1
   optimizer: rmsprop
-  batch_size: 64 ### 
+  batch_size: 512 ### 
   lr_g: 0.0001
   lr_d: 0.0001
   out_dir: output/
   out_basename: MoG_baseline
-  pid_type: none
+  pid_type: function
   pv: 1.
-  iv: 0.
+  iv: 0.1
   dv: 0.
-  i_size: 64
-  i_buffer_factor: 1000
+  i_size: 512
+  i_buffer_factor: 20
   i_buffer_onestep: 10
   momentum_d: 0. ###
   clip_d: 0. ###
