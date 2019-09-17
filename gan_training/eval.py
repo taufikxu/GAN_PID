@@ -65,6 +65,7 @@ class Evaluator(object):
                 x = self.generator(z, y)
             return x
         else:
+            self.generator.eval()
             z_sample = self.zdist.sample((10000, ))
             y_sample = self.ydist.sample((10000, ))
             y_sample = torch.clamp(y_sample, None, 0)

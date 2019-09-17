@@ -9,14 +9,6 @@ class Random_queue(object):
         self.data = []
 
     def set_data(self, samples):
-        # permutation = np.random.permutation(self.capacity)
-        # for i in range(samples.shape[0]):
-        #     if self.length < self.capacity:
-        #         self.data.append(samples[i:i + 1])
-        #         self.length += 1
-        #     else:
-        #         self.data[permutation[i]] = samples[i:i + 1]
-
         if self.length < self.capacity:
             for i in range(samples.shape[0]):
                 self.data.append(samples[i:i + 1])

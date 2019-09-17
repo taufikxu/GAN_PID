@@ -23,6 +23,7 @@ class Trainer(object):
                  time_step=1.,
                  batch_size=64,
                  config=None):
+        print("Using PID Trainer")
         self.generator = generator
         self.discriminator = discriminator
         self.g_optimizer = g_optimizer
@@ -31,9 +32,6 @@ class Trainer(object):
         self.gan_type = gan_type
         self.reg_type = reg_type
         self.reg_param = reg_param
-
-        self.i_xreal = None
-        self.i_xfake = None
 
         self.d_xfake = None
         self.d_previous_z = None
@@ -101,46 +99,10 @@ class Trainer(object):
         if self.iv > 0 and it > 0:
             # i_factor = self.config['training']['i_buffer_factor']
             i_store = self.config['training']['i_buffer_onestep']
-            # if self.i_xreal is None:
-            #     self.i_xreal = x_real.cpu().detach().numpy()
-            #     self.i_y = y.cpu().detach().numpy()
-            #     self.i_xfake = x_fake.cpu().detach().numpy()
-            # else:
-            #     # self.i_xreal = torch.cat([x_real, self.i_xreal], 0)
-            #     self.i_xreal = np.concatenate(
-            #         [x_real.cpu().detach().numpy()[:i_store], self.i_xreal], 0)
-            #     self.i_xreal = self.i_xreal[:self.batch_size * i_factor]
-
-            #     self.i_xfake = np.concatenate(
-            #         [x_fake.cpu().detach().numpy()[:i_store], self.i_xfake], 0)
-            #     self.i_xfake = self.i_xfake[:self.batch_size * i_factor]
-
-            #     self.i_y = np.concatenate(
-            #         [y.cpu().detach().numpy()[:i_store], self.i_y], 0)
-            #     self.i_y = self.i_y[:self.batch_size * i_factor]
-
-            # i_size = self.config['training']['i_size']
-            # if i_size > 0:
-            #     index = np.random.permutation(self.i_y.shape[0])
-            #     self.i_y = self.i_y[index]
-            #     self.i_xreal = self.i_xreal[index]
-            #     self.i_xfake = self.i_xfake[index]
-
-            #     i_y = self.i_y[:i_size]
-            #     i_xreal = self.i_xreal[:i_size]
-            #     i_xfake = self.i_xfake[:i_size]
-            # else:
-            #     i_y = self.i_y
-            #     i_xreal = self.i_xreal
-            #     i_xfake = self.i_xfake
-            if self.i_xreal is None:
-                self.i_real_queue.set_data(x_real.cpu().detach().numpy())
-                self.i_fake_queue.set_data(x_fake.cpu().detach().numpy())
-            else:
-                self.i_real_queue.set_data(
-                    x_real.cpu().detach().numpy()[:i_store])
-                self.i_fake_queue.set_data(
-                    x_fake.cpu().detach().numpy()[:i_store])
+            if it < 2:
+                i_store = self.config['training']['batch_size']
+            self.i_real_queue.set_data(x_real.cpu().detach().numpy()[:i_store])
+            self.i_fake_queue.set_data(x_fake.cpu().detach().numpy()[:i_store])
             i_xreal = self.i_real_queue.get_data()
             i_xfake = self.i_fake_queue.get_data()
 
@@ -165,31 +127,30 @@ class Trainer(object):
         # print(self.dv)
         if self.dv > 0 and it > 0:
             if self.d_xfake is None:
+                self.d_xreal = x_real
                 self.d_xfake = x_fake
                 self.d_previous_z = z
                 self.d_previous_y = y
             else:
-                # with torch.no_grad():
-                #     d_current_xfake = self.generator(self.d_previous_z,
-                #                                      self.d_previous_y)
-                # d_loss_current = self.compute_loss(
-                #     self.discriminator(d_current_xfake, self.d_previous_y), 0)
+                d_loss_previous_f = self.compute_loss(
+                    self.discriminator(self.d_xfake, self.d_previous_y), 0)
+                d_loss_previous_r = self.compute_loss(
+                    self.discriminator(self.d_xreal, self.d_previous_y), 1)
+                d_loss_previous = d_loss_previous_f + d_loss_previous_r
 
-                d_loss_current = self.compute_loss(
+                d_loss_current_f = self.compute_loss(
                     self.discriminator(x_fake, y), 0)
-                d_loss_previous = self.compute_loss(
-                    self.discriminator(self.d_xfake, self.d_previous_y), 1)
-                d_loss = (d_loss_current + d_loss_previous) * self.dv
+                d_loss_current_r = self.compute_loss(
+                    self.discriminator(x_real, y), 1)
+                d_loss_current = d_loss_current_f + d_loss_current_r
+
+                d_loss = (d_loss_current - d_loss_previous) * self.dv
                 d_loss.backward()
 
+                self.d_xreal = x_real
                 self.d_xfake = x_fake
                 self.d_previous_z = z
                 self.d_previous_y = y
-
-        clip_d = self.config['training']['clip_d']
-        if clip_d is not None and clip_d > 0.:
-            torch.nn.utils.clip_grad_value_(self.discriminator.parameters(),
-                                            self.config['training']['clip_d'])
 
         self.d_optimizer.step()
 

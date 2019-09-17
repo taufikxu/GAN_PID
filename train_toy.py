@@ -11,6 +11,7 @@ from gan_training.inputs import get_dataset
 from gan_training.checkpoints import CheckpointIO
 from gan_training.logger import Logger
 from gan_training.train_pid import Trainer, update_average
+from gan_training.train import Trainer as Trainer_reg
 from gan_training import utils
 from torch import nn
 import shutil
@@ -23,9 +24,10 @@ import torch
 import numpy as np
 from utils_log import MetricSaver
 
-torch.manual_seed(0)
+torch.manual_seed(1234)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
+np.seed(1235)
 
 # Arguments
 parser = argparse.ArgumentParser(
@@ -126,7 +128,7 @@ zdist = get_zdist(config['z_dist']['type'],
                   config['z_dist']['dim'],
                   device=device)
 
-ntest = 20000
+ntest = 50000
 x_real_test, ytest = utils.get_nsamples(train_loader, ntest)
 ytest.clamp_(None, nlabels - 1)
 ztest = zdist.sample((ntest, ))
@@ -181,22 +183,28 @@ g_scheduler = build_lr_scheduler(g_optimizer, config, last_epoch=it)
 d_scheduler = build_lr_scheduler(d_optimizer, config, last_epoch=it)
 
 # Trainer
-trainer = Trainer(generator,
-                  discriminator,
-                  g_optimizer,
-                  d_optimizer,
-                  gan_type=config['training']['gan_type'],
-                  reg_type=config['training']['reg_type'],
-                  reg_param=config['training']['reg_param'],
-                  pv=config['training']['pv'],
-                  iv=config['training']['iv'],
-                  dv=config['training']['dv'],
-                  batch_size=config['training']['batch_size'],
-                  config=config)
+if config['training']['reg_type'] in [
+        'real', 'fake', 'real_fake', 'wgangp', 'wgangp0'
+]:
+    trainer_class = Trainer_reg
+else:
+    trainer_class = Trainer
+trainer = trainer_class(generator,
+                        discriminator,
+                        g_optimizer,
+                        d_optimizer,
+                        gan_type=config['training']['gan_type'],
+                        reg_type=config['training']['reg_type'],
+                        reg_param=config['training']['reg_param'],
+                        pv=config['training']['pv'],
+                        iv=config['training']['iv'],
+                        dv=config['training']['dv'],
+                        batch_size=config['training']['batch_size'],
+                        config=config)
 
 # Training loop
 print('Start training...')
-while True:
+while epoch_idx < 1600:
     epoch_idx += 1
     print('Start epoch %d...' % epoch_idx)
 
@@ -252,14 +260,9 @@ while True:
                                          toy=toy_data,
                                          x_real=x_real_test,
                                          contour_matrix=contour_matrix)
-            logger.add_imgs(x, 'all', it)
+            logger.add_imgs(x[0:1], 'all', it)
+            logger.add_imgs(x[1:2], 'all', it + 1)
 
-            with torch.no_grad():
-                x = generator(ztest, ytest)
-            centers = torch.mean(x, 0)
-            centers = centers.data.cpu().numpy()
-            centers = np.sum(centers**2)
-            centers_logger.update(it, centers)
         # (ii) Compute inception if necessary
         if inception_every > 0 and ((it + 1) % inception_every) == 0:
             inception_mean, inception_std = evaluator.compute_inception_score()

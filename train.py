@@ -20,6 +20,12 @@ from gan_training.config import (
     build_lr_scheduler,
 )
 import utils_log
+import numpy as np
+
+torch.manual_seed(1234)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+np.seed(1235)
 
 # Arguments
 parser = argparse.ArgumentParser(
@@ -173,7 +179,7 @@ trainer = Trainer(generator,
 
 # Training loop
 print('Start training...')
-while True:
+while epoch_idx < 1600:
     epoch_idx += 1
     print('Start epoch %d...' % epoch_idx)
 

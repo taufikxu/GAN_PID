@@ -6,16 +6,17 @@ delta_t = 0.01
 
 
 class GAN_simualte(object):
-    def __init__(self, gantype, controller_d):
+    def __init__(self, gantype, controller_d, damping):
         self.type = gantype
         self.controller_d = controller_d
+        self.damping = damping
         self.d = 0.
         self.g = 0.
 
     def d_step(self):
         error = data - self.g
         error = self.controller_d(error)
-        self.d += error * delta_t
+        self.d += error * delta_t - self.damping * self.d
 
     def g_step(self):
         self.g += self.d * delta_t
@@ -42,15 +43,22 @@ class PID_controller(object):
         return self.p * p_signal + self.i * i_signal + self.d * d_signal
 
 
-p, i, d = 10, 11, 10
-saver = MetricSaver("Generator_{}_{}_{}".format(p, i, d),
+p, i, d = 1, -1, 0
+damping = 0.
+saver = MetricSaver("Generator_{}_{}_{}_{}_g".format(p, i, d, damping),
                     "./delta_gan/",
                     save_on_update=False)
+saver1 = MetricSaver("Generator_{}_{}_{}_{}_d".format(p, i, d, damping),
+                     "./delta_gan/",
+                     save_on_update=False)
 controller = PID_controller(p, i, d)
-gan = GAN_simualte('gan', controller)
+gan = GAN_simualte('gan', controller, damping)
 
 for i in range(10000):
     gan.d_step()
     gan.g_step()
+
     saver.update(i, gan.g, save=False)
+    saver1.update(i, gan.d, save=False)
 saver.save()
+saver1.save()

@@ -211,5 +211,6 @@ class ResnetBlock(nn.Module):
 
 
 def actvn(x):
-    out = F.leaky_relu(x, 2e-1)
+    out = F.relu(x)
+    # out = F.leaky_relu(x, 0.2)
     return out

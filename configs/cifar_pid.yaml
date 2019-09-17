@@ -28,9 +28,7 @@ training:
   model_average_reinit: false
   monitoring: tensorboard
   sample_every: 1000
-  inception_every: 10000
   save_every: 900
-  backup_every: 100000
   restart_every: -1
   optimizer: rmsprop
   batch_size: 64 ## related to i_size
@@ -38,16 +36,21 @@ training:
   lr_d: 0.0001
   out_dir: output/
   out_basename: cifar_pid_
-  pid_type: function
+  pid_type: lsgan
+  backup_every: 100000
+  inception_every: 10000
   pv: 1.
-  iv: 0.01
-  dv: 100.
+  iv: 5.
+  dv: 0.
+  improve_d_factor: -1
+  improve_d_cycle: 10000
+  # model_file: /home/kunxu/mfs/Workspace/GAN_stability/output/0good_ckpt/chkpts/model_00799999.pt
   i_size: 64 ## related to batch_size
-  i_buffer_factor: 100
-  i_buffer_onestep: 10
+  i_buffer_factor: 10
+  i_buffer_onestep: 64
   momentum_d: 0. ###
   clip_d: 0. ###
-  weight_decay_d: 0.0 ###
+  weight_decay_d: 0. ###
   regularize_output_d: 0. ###
   lr_anneal: 1.
   lr_anneal_every: 150000

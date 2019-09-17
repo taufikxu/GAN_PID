@@ -22,9 +22,10 @@ import argparse
 import torch
 import numpy as np
 
-torch.manual_seed(0)
+torch.manual_seed(1234)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
+np.seed(1235)
 
 # Arguments
 parser = argparse.ArgumentParser(
@@ -152,7 +153,11 @@ try:
     load_dict = checkpoint_io.load(model_file)
 except FileNotFoundError:
     it = epoch_idx = -1
+    print("No loaded model, from initialization")
+    evaluation_flag = False
 else:
+    print("successfully loaded")
+    evaluation_flag = False
     it = load_dict.get('it', -1)
     epoch_idx = load_dict.get('epoch_idx', -1)
     logger.load_stats('stats.p')
@@ -182,7 +187,7 @@ trainer = Trainer(generator,
 
 # Training loop
 print('Start training...')
-while True:
+while epoch_idx < 1600:
     epoch_idx += 1
     print('Start epoch %d...' % epoch_idx)
 
@@ -217,6 +222,10 @@ while True:
                                generator,
                                beta=config['training']['model_average_beta'])
 
+        if it % config['training']['improve_d_cycle'] == 0:
+            factor = config['training']['improve_d_factor']
+            if factor > 0.:
+                trainer.dv *= factor
         # Print stats
         if it % 100 == 0:
             g_loss_last = logger.get_last('losses', 'generator')
@@ -237,7 +246,9 @@ while True:
                 logger.add_imgs(x, '%04d' % y_inst, it)
 
         # (ii) Compute inception if necessary
-        if inception_every > 0 and ((it + 1) % inception_every) == 0:
+        if evaluation_flag is True or (inception_every > 0 and
+                                       ((it + 1) % inception_every) == 0):
+            evaluation_flag = False
             inception_mean, inception_std = evaluator.compute_inception_score()
             logger.add('inception_score', 'mean', inception_mean, it=it)
             logger.add('inception_score', 'stddev', inception_std, it=it)
@@ -252,11 +263,11 @@ while True:
             logger.save_stats('stats_%08d.p' % it)
 
         # (iv) Save checkpoint if necessary
-        if time.time() - t0 > save_every:
-            text_logger.info('Saving checkpoint...')
-            checkpoint_io.save(model_file, it=it)
-            logger.save_stats('stats.p')
-            t0 = time.time()
+        # if time.time() - t0 > save_every:
+        #     text_logger.info('Saving checkpoint...')
+        #     checkpoint_io.save(model_file, it=it)
+        #     logger.save_stats('stats.p')
+        #     t0 = time.time()
 
-            if (restart_every > 0 and t0 - tstart > restart_every):
-                exit(3)
+        #     if (restart_every > 0 and t0 - tstart > restart_every):
+        #         exit(3)

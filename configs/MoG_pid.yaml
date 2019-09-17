@@ -8,7 +8,7 @@ data:
   shape: ring
   num_mixture: 8
   radius: 1.
-  std: 0.1
+  std: 0.01
 
   # shape: grid
   # num_mixture: 25
@@ -46,14 +46,14 @@ training:
   lr_g: 0.0001
   lr_d: 0.0001
   out_dir: output/
-  out_basename: MoG_baseline
-  pid_type: function
+  out_basename: MoG_
+  pid_type: lsgan
   pv: 1.
-  iv: 0.1
+  iv: 10.
   dv: 0.
   i_size: 512
-  i_buffer_factor: 20
-  i_buffer_onestep: 10
+  i_buffer_factor: 100
+  i_buffer_onestep: 128
   momentum_d: 0. ###
   clip_d: 0. ###
   weight_decay_d: 0.0 ###

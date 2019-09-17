@@ -3,6 +3,31 @@ from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import numpy as np
+import PIL.Image
+
+
+class NumpyImageDataset(Dataset):
+    def __init__(self, imgs, label, transform=None):
+        self.imgs = imgs
+        self.label = label
+        self.transform = transform
+
+        self.num_classes = np.unique(label).shape[0]
+
+    def __len__(self):
+        return len(self.imgs)
+
+    def __getitem__(self, index):
+        img = np.array(self.imgs[index])
+        label = self.label[index]
+        # print(img.shape)
+
+        img = img.transpose([1, 2, 0])
+        img = PIL.Image.fromarray(img)
+        if self.transform is not None:
+            img = self.transform(img)
+
+        return img, label
 
 
 class MixtureOfGaussianDataset(Dataset):
@@ -61,12 +86,17 @@ def get_dataset(name, data_dir, size=64, lsun_categories=None, config=None):
     if name == "MoG":
         dataset = MixtureOfGaussianDataset(config)
         nlabels = 1
+    elif name.lower() == "celeba":
+        imgs = np.load("/home/LargeData/celebA_64x64.npy")
+        labels = np.zeros([imgs.shape[0]]).astype(np.int64)
+        dataset = NumpyImageDataset(imgs, labels, transform)
+        nlabels = 1
     elif name == 'image':
         dataset = datasets.ImageFolder(data_dir, transform)
         nlabels = len(dataset.classes)
     elif name == 'npy':
         # Only support normalization for now
-        dataset = datasets.DatasetFolder(data_dir, npy_loader, ['npy'])
+        dataset = datasets.DatasetFolder(data_dir, npy_loader, 'npy')
         nlabels = len(dataset.classes)
     elif name == 'cifar10':
         dataset = datasets.CIFAR10(root=data_dir,
