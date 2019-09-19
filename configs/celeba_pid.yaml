@@ -40,7 +40,7 @@ training:
   backup_every: 10000
   inception_every: 100000000
   pv: 1.
-  iv: 0.
+  iv: 15.
   dv: 0.
   i_size: 64 ## related to batch_size
   i_buffer_factor: 100

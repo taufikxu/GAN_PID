@@ -1,4 +1,3 @@
-
 import os
 import urllib
 import torch
@@ -60,8 +59,8 @@ class CheckpointIO(object):
             filename = os.path.join(self.checkpoint_dir, filename)
 
         if os.path.exists(filename):
-            print(filename)
-            print('=> Loading checkpoint from local file...')
+            # print(filename)
+            # print('=> Loading checkpoint from local file...')
             state_dict = torch.load(filename)
             scalars = self.parse_state_dict(state_dict)
             return scalars
@@ -92,9 +91,12 @@ class CheckpointIO(object):
                 v.load_state_dict(state_dict[k])
             else:
                 print('Warning: Could not find %s in checkpoint!' % k)
-        scalars = {k: v for k, v in state_dict.items()
-                   if k not in self.module_dict}
+        scalars = {
+            k: v
+            for k, v in state_dict.items() if k not in self.module_dict
+        }
         return scalars
+
 
 def is_url(url):
     scheme = urllib.parse.urlparse(url).scheme

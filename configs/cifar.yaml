@@ -21,7 +21,7 @@ z_dist:
 training:
   out_dir: output/
   out_basename: cifar_baseline
-  gan_type: standard
+  gan_type: lsgan2
   reg_type: none
   reg_param: 10.
   batch_size: 64
@@ -33,7 +33,7 @@ training:
   sample_every: 1000
   inception_every: 10000
   save_every: 900
-  backup_every: 100000
+  backup_every: 10000
   restart_every: -1
   optimizer: rmsprop
   lr_g: 0.0001
