@@ -27,7 +27,7 @@ from utils_log import MetricSaver
 torch.manual_seed(1234)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
-np.seed(1235)
+np.random.seed(1235)
 
 # Arguments
 parser = argparse.ArgumentParser(
@@ -134,7 +134,7 @@ ytest.clamp_(None, nlabels - 1)
 ztest = zdist.sample((ntest, ))
 
 grid = np.zeros([1000, 1000, 2])
-grid_range = [-1.4, 1.4]
+grid_range = [-1.6, 1.6]
 for i in range(1000):
     for j in range(1000):
         grid[i, j, 0] = (grid_range[1] -
@@ -186,21 +186,30 @@ d_scheduler = build_lr_scheduler(d_optimizer, config, last_epoch=it)
 if config['training']['reg_type'] in [
         'real', 'fake', 'real_fake', 'wgangp', 'wgangp0'
 ]:
+    reg_flag = True
     trainer_class = Trainer_reg
+    trainer = trainer_class(generator,
+                            discriminator,
+                            g_optimizer,
+                            d_optimizer,
+                            gan_type=config['training']['gan_type'],
+                            reg_type=config['training']['reg_type'],
+                            reg_param=config['training']['reg_param'])
 else:
+    reg_flag = False
     trainer_class = Trainer
-trainer = trainer_class(generator,
-                        discriminator,
-                        g_optimizer,
-                        d_optimizer,
-                        gan_type=config['training']['gan_type'],
-                        reg_type=config['training']['reg_type'],
-                        reg_param=config['training']['reg_param'],
-                        pv=config['training']['pv'],
-                        iv=config['training']['iv'],
-                        dv=config['training']['dv'],
-                        batch_size=config['training']['batch_size'],
-                        config=config)
+    trainer = trainer_class(generator,
+                            discriminator,
+                            g_optimizer,
+                            d_optimizer,
+                            gan_type=config['training']['gan_type'],
+                            reg_type=config['training']['reg_type'],
+                            reg_param=config['training']['reg_param'],
+                            pv=config['training']['pv'],
+                            iv=config['training']['iv'],
+                            dv=config['training']['dv'],
+                            batch_size=config['training']['batch_size'],
+                            config=config)
 
 # Training loop
 print('Start training...')
@@ -223,7 +232,11 @@ while epoch_idx < 1600:
 
         # Discriminator updates
         z = zdist.sample((batch_size, ))
-        dloss, dl, il = trainer.discriminator_trainstep(x_real, y, z, it)
+        if reg_flag is True:
+            dloss, dl = trainer.discriminator_trainstep(x_real, y, z)
+            il = 0
+        else:
+            dloss, dl, il = trainer.discriminator_trainstep(x_real, y, z, it)
         logger.add('losses', 'discriminator', dloss, it=it)
         logger.add('losses', 'd_loss', dl, it=it)
         logger.add('losses', 'i_loss', il, it=it)

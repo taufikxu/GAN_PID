@@ -99,14 +99,12 @@ class Trainer(object):
         if self.iv > 0 and it > 0:
             # i_factor = self.config['training']['i_buffer_factor']
             i_store = self.config['training']['i_buffer_onestep']
-            if it < 2:
-                i_store = self.config['training']['batch_size']
             self.i_real_queue.set_data(x_real.cpu().detach().numpy()[:i_store])
             self.i_fake_queue.set_data(x_fake.cpu().detach().numpy()[:i_store])
+
             i_xreal = self.i_real_queue.get_data()
             i_xfake = self.i_fake_queue.get_data()
 
-            # i_y = torch.from_numpy(i_y).cuda()
             i_xreal = torch.from_numpy(i_xreal).cuda()
             i_xfake = torch.from_numpy(i_xfake).cuda()
             i_y = y

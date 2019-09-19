@@ -58,17 +58,20 @@ class MixtureOfGaussianDataset(Dataset):
             centers = np.concatenate(centers, 0) * radius / 2.
             return centers
         else:
-            raise ValueError(
-                "Unknown shape for mixture of gaussian:{}".format(shape))
+            pass
 
     def __len__(self):
         return 100000
 
     def __getitem__(self, index):
-        index = np.random.randint(0, self.num_mixture)
-        center = self.centers[index]
-        sample = self.rng.normal(size=center.shape) * self.std + center
-        # print(sample, type(sample), sample.dtype, sample.shape)
+        if self.shape == "circle":
+            sample = np.random.normal(0, 1, 2)
+            sample = sample / (np.sqrt(sample[1]**2 + sample[0]**2))
+        else:
+            index = np.random.randint(0, self.num_mixture)
+            center = self.centers[index]
+            sample = self.rng.normal(size=center.shape) * self.std + center
+            # print(sample, type(sample), sample.dtype, sample.shape)
         sample = torch.from_numpy(sample.astype(np.float32))
         return sample, torch.from_numpy(np.array([0]))
 

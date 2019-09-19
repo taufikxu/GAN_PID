@@ -27,6 +27,14 @@ class Generator(nn.Module):
         self.layer2 = nn.Linear(128, 128)
         self.layer3 = nn.Linear(128, 2)
 
+        init_factor = 1
+        torch.nn.init.kaiming_uniform_(self.layer1.weight, init_factor)
+        torch.nn.init.kaiming_uniform_(self.layer2.weight, init_factor)
+        torch.nn.init.kaiming_uniform_(self.layer3.weight, init_factor)
+        torch.nn.init.zeros_(self.layer1.bias)
+        torch.nn.init.zeros_(self.layer2.bias)
+        torch.nn.init.zeros_(self.layer3.bias)
+
     def forward(self, z, y):
         feature = self.activation(self.layer1(z))
         feature = self.activation(self.layer2(feature))
@@ -45,7 +53,6 @@ class Discriminator(nn.Module):
         super().__init__()
 
         self.activation = nn.ReLU()
-        # self.activation = actvn
         self.layer1 = nn.Linear(2, num_hidden_units)
         self.layer2 = nn.Linear(num_hidden_units, num_hidden_units)
         self.layer3 = nn.Linear(num_hidden_units, 1)

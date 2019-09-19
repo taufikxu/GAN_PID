@@ -22,10 +22,9 @@ import argparse
 import torch
 import numpy as np
 
-torch.manual_seed(1234)
+torch.manual_seed(0)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
-np.seed(1235)
 
 # Arguments
 parser = argparse.ArgumentParser(
@@ -222,10 +221,6 @@ while epoch_idx < 1600:
                                generator,
                                beta=config['training']['model_average_beta'])
 
-        if it % config['training']['improve_d_cycle'] == 0:
-            factor = config['training']['improve_d_factor']
-            if factor > 0.:
-                trainer.dv *= factor
         # Print stats
         if it % 100 == 0:
             g_loss_last = logger.get_last('losses', 'generator')

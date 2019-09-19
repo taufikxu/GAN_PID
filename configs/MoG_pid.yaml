@@ -7,12 +7,12 @@ data:
   img_size: 2
   shape: ring
   num_mixture: 8
-  radius: 1.
-  std: 0.01
+  radius: 1
+  std: 0.05
 
   # shape: grid
   # num_mixture: 25
-  # radius: 2
+  # radius: 0.2
   # std: 0.01
 generator:
   name: mlp1
@@ -29,8 +29,8 @@ z_dist:
   dim: 32
 training:
   gan_type: wgan
-  reg_type: none
-  reg_param: 0.
+  reg_type: wgangp
+  reg_param: 10.
   nworkers: 0
   take_model_average: false
   model_average_beta: 0.999
@@ -49,11 +49,14 @@ training:
   out_basename: MoG_
   pid_type: lsgan
   pv: 1.
-  iv: 10.
+  iv: 0.
   dv: 0.
+  anneal_iv_factor: -1
+  anneal_iv_every: 100000000
+  anneal_iv_final: 0.1
   i_size: 512
   i_buffer_factor: 100
-  i_buffer_onestep: 128
+  i_buffer_onestep: 512
   momentum_d: 0. ###
   clip_d: 0. ###
   weight_decay_d: 0.0 ###

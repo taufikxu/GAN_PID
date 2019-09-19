@@ -22,10 +22,9 @@ from gan_training.config import (
 import utils_log
 import numpy as np
 
-torch.manual_seed(1234)
+torch.manual_seed(0)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
-np.seed(1235)
 
 # Arguments
 parser = argparse.ArgumentParser(

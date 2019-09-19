@@ -88,7 +88,7 @@ class Evaluator(object):
                         c='b',
                         edgecolor='none',
                         alpha=0.05)
-            show_range = 1.4
+            show_range = 1.6
             plt.xlim((-show_range, show_range))
             plt.ylim((-show_range, show_range))
             plt.grid(True)
