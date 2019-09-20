@@ -19,7 +19,7 @@ z_dist:
   type: gauss
   dim: 256
 training:
-  gan_type: standard
+  gan_type: wgan
   reg_type: none
   reg_param: 0.
   nworkers: 32
@@ -36,11 +36,11 @@ training:
   lr_d: 0.0001
   out_dir: output/
   out_basename: cifar_pid_
-  pid_type: lsgan
+  pid_type: square
   backup_every: 10000
   inception_every: 10000
   pv: 1.
-  iv: 0.
+  iv: 10.
   dv: 0.
   i_size: 64 ## related to batch_size
   i_buffer_factor: 100
@@ -48,7 +48,7 @@ training:
   momentum_d: 0. ###
   clip_d: 0. ###
   weight_decay_d: 0. ###
-  regularize_output_d: 10. ###
+  regularize_output_d: 0. ###
   lr_anneal: 1.
   lr_anneal_every: 300000
   d_steps: 1

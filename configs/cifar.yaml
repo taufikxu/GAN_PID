@@ -21,7 +21,7 @@ z_dist:
 training:
   out_dir: output/
   out_basename: cifar_baseline
-  gan_type: lsgan2
+  gan_type: wgan
   reg_type: none
   reg_param: 10.
   batch_size: 64

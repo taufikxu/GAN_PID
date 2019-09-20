@@ -29,7 +29,7 @@ z_dist:
   dim: 32
 training:
   gan_type: wgan
-  reg_type: wgangp
+  reg_type: none
   reg_param: 10.
   nworkers: 0
   take_model_average: false
@@ -47,9 +47,9 @@ training:
   lr_d: 0.0001
   out_dir: output/
   out_basename: MoG_
-  pid_type: lsgan
+  pid_type: abs
   pv: 1.
-  iv: 0.
+  iv: 0.01
   dv: 0.
   anneal_iv_factor: -1
   anneal_iv_every: 100000000

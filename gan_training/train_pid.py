@@ -52,6 +52,7 @@ class Trainer(object):
             config['training']['batch_size'] *
             config['training']['i_buffer_factor'],
             config['training']['batch_size'])
+        self.max0 = torch.nn.ReLU()
 
     def generator_trainstep(self, y, z):
         assert (y.size(0) == z.size(0))
@@ -116,9 +117,16 @@ class Trainer(object):
 
             if self.config['training']['pid_type'] == 'function':
                 i_loss = (i_loss_real + i_loss_fake) * self.iv
-            elif self.config['training']['pid_type'] == 'lsgan':
+            elif self.config['training']['pid_type'] == 'square':
                 i_loss = ((i_real_doutput**2).mean() +
                           (i_fake_doutput**2).mean()) * self.iv
+            elif self.config['training']['pid_type'] == 'abs':
+                i_loss = (torch.abs(i_real_doutput).mean() +
+                          torch.abs(i_fake_doutput).mean()) * self.iv
+            elif self.config['training']['pid_type'] == 'accurate':
+                i_fake_doutput = self.max0(i_fake_doutput)
+                i_real_doutput = -1 * self.max0(-1 * i_real_doutput)
+                i_loss = (i_fake_doutput - i_real_doutput).mean() * self.iv
             i_loss.backward()
 
         d_loss = torch.from_numpy(np.array([0.]))

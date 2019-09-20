@@ -36,7 +36,7 @@ training:
   lr_d: 0.0001
   out_dir: output/
   out_basename: celebA_pid_
-  pid_type: lsgan
+  pid_type: square
   backup_every: 10000
   inception_every: 100000000
   pv: 1.

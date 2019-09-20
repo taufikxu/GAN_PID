@@ -2,7 +2,7 @@ import numpy as np
 from utils_log import MetricSaver
 
 data = 1.
-delta_t = 0.00001
+delta_t = 0.01
 
 
 class GAN_simualte(object):
@@ -44,7 +44,7 @@ class PID_controller(object):
 
 
 p, i, d = 1, 0, 0
-damping = 20
+damping = 2.
 saver = MetricSaver("Generator_{}_{}_{}_{}_g".format(p, i, d, damping),
                     "./delta_gan/",
                     save_on_update=False)
@@ -54,7 +54,7 @@ saver1 = MetricSaver("Generator_{}_{}_{}_{}_d".format(p, i, d, damping),
 controller = PID_controller(p, i, d)
 gan = GAN_simualte('gan', controller, damping)
 
-for i in range(100000000):
+for i in range(200000):
     gan.d_step()
     gan.g_step()
 
