@@ -20,7 +20,7 @@ z_dist:
   dim: 256
 training:
   gan_type: wgan
-  reg_type: none
+  reg_type: real
   reg_param: 10.
   nworkers: 32
   take_model_average: true
@@ -40,7 +40,7 @@ training:
   backup_every: 10000
   inception_every: 100000000
   pv: 1.
-  iv: 15.
+  iv: 10.
   dv: 0.
   i_size: 64 ## related to batch_size
   i_buffer_factor: 100

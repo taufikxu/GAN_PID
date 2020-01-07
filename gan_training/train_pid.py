@@ -100,19 +100,22 @@ class Trainer(object):
         if self.iv > 0 and it > 0:
             # i_factor = self.config['training']['i_buffer_factor']
             i_store = self.config['training']['i_buffer_onestep']
-            self.i_real_queue.set_data(x_real.cpu().detach().numpy()[:i_store])
-            self.i_fake_queue.set_data(x_fake.cpu().detach().numpy()[:i_store])
+            self.i_real_queue.set_data(x_real.cpu().detach().numpy()[:i_store],
+                                       y.cpu().detach().numpy()[:i_store])
+            self.i_fake_queue.set_data(x_fake.cpu().detach().numpy()[:i_store],
+                                       y.cpu().detach().numpy()[:i_store])
 
-            i_xreal = self.i_real_queue.get_data()
-            i_xfake = self.i_fake_queue.get_data()
+            i_xreal, i_yreal = self.i_real_queue.get_data()
+            i_xfake, i_yfake = self.i_fake_queue.get_data()
 
             i_xreal = torch.from_numpy(i_xreal).cuda()
             i_xfake = torch.from_numpy(i_xfake).cuda()
-            i_y = y
+            i_yreal = torch.from_numpy(i_yreal).cuda()
+            i_yfake = torch.from_numpy(i_yfake).cuda()
 
-            i_real_doutput = self.discriminator(i_xreal, i_y)
+            i_real_doutput = self.discriminator(i_xreal, i_yreal)
             i_loss_real = self.compute_loss(i_real_doutput, 1)
-            i_fake_doutput = self.discriminator(i_xfake, i_y)
+            i_fake_doutput = self.discriminator(i_xfake, i_yfake)
             i_loss_fake = self.compute_loss(i_fake_doutput, 0)
 
             if self.config['training']['pid_type'] == 'function':
