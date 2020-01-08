@@ -10,18 +10,24 @@ class Random_queue(object):
         self.label = []
 
     def set_data(self, samples, y=None):
+        if len(self.data) == 0:
+            shape = samples.shape[1:]
+            self.data = np.zeros([self.capacity, shape[0], shape[1], shape[2]])
+            if y is not None:
+                self.label = np.zeros([self.capacity])
+
         if self.length < self.capacity:
             for i in range(samples.shape[0]):
-                self.data.append(samples[i:i + 1])
+                self.data[self.length] = samples[i:i + 1]
                 if y is not None:
-                    self.label.append(y[i:i + 1])
+                    self.label[self.length] = y[i:i + 1]
                 self.length += 1
         else:
             permutation = np.random.permutation(self.length)
             for i in range(samples.shape[0]):
-                self.data[permutation[i]] = samples[i:i + 1]
+                self.data[permutation[i]] = samples[i]
                 if y is not None:
-                    self.label[permutation[i]] = y[i:i + 1]
+                    self.label[permutation[i]] = y[i]
 
     def get_data(self, batch_size=None):
         if batch_size is None:
@@ -29,10 +35,9 @@ class Random_queue(object):
         # print(batch_size, self.length)
         if batch_size > self.length:
             if len(self.label) == 0:
-                return np.concatenate(self.data, 0)
+                return self.data[:self.length]
             else:
-                return np.concatenate(self.data,
-                                      0), np.concatenate(self.label, 0)
+                return self.data[:self.length], self.label[:self.length]
 
         results, results_l = [], []
         permutation = np.random.permutation(self.length)
@@ -40,8 +45,9 @@ class Random_queue(object):
             results.append(self.data[permutation[i]])
             if len(self.label) > 0:
                 results_l.append(self.label[permutation[i]])
-
         if len(self.label) == 0:
-            return np.concatenate(results, 0)
+            return np.stack(results, 0).astype(np.float32)
         else:
-            return np.concatenate(results, 0), np.concatenate(results_l, 0)
+            img = np.stack(results, 0).astype(np.float32)
+            lab = np.array(results_l).astype(np.int64)
+            return img, lab

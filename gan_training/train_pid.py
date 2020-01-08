@@ -52,6 +52,7 @@ class Trainer(object):
             config['training']['batch_size'] *
             config['training']['i_buffer_factor'],
             config['training']['batch_size'])
+
         self.max0 = torch.nn.ReLU()
 
     def generator_trainstep(self, y, z):
@@ -72,6 +73,7 @@ class Trainer(object):
         return gloss.item()
 
     def discriminator_trainstep(self, x_real, y, z, it=0):
+        # print(it)
         toggle_grad(self.generator, False)
         toggle_grad(self.discriminator, True)
         self.generator.train()
@@ -97,21 +99,25 @@ class Trainer(object):
         dloss_fake.backward()
 
         i_loss = torch.from_numpy(np.array([0.]))
-        if self.iv > 0 and it > 0:
+        if self.iv > 0:
             # i_factor = self.config['training']['i_buffer_factor']
             i_store = self.config['training']['i_buffer_onestep']
-            self.i_real_queue.set_data(x_real.cpu().detach().numpy()[:i_store],
-                                       y.cpu().detach().numpy()[:i_store])
-            self.i_fake_queue.set_data(x_fake.cpu().detach().numpy()[:i_store],
-                                       y.cpu().detach().numpy()[:i_store])
+            xtmp = x_real.data.cpu().detach().numpy()
+            ytmp = y.data.cpu().detach().numpy()
+            self.i_real_queue.set_data(xtmp, ytmp)
+            del xtmp, ytmp
+            xtmp = x_fake.data.cpu().detach().numpy()
+            ytmp = y.data.cpu().detach().numpy()
+            self.i_fake_queue.set_data(xtmp, ytmp)
+            del xtmp, ytmp
 
             i_xreal, i_yreal = self.i_real_queue.get_data()
             i_xfake, i_yfake = self.i_fake_queue.get_data()
 
-            i_xreal = torch.from_numpy(i_xreal).cuda()
-            i_xfake = torch.from_numpy(i_xfake).cuda()
-            i_yreal = torch.from_numpy(i_yreal).cuda()
-            i_yfake = torch.from_numpy(i_yfake).cuda()
+            i_xreal = torch.as_tensor(i_xreal, dtype=torch.float32).cuda()
+            i_xfake = torch.as_tensor(i_xfake, dtype=torch.float32).cuda()
+            i_yreal = torch.as_tensor(i_yreal, dtype=torch.long).cuda()
+            i_yfake = torch.as_tensor(i_yfake, dtype=torch.long).cuda()
 
             i_real_doutput = self.discriminator(i_xreal, i_yreal)
             i_loss_real = self.compute_loss(i_real_doutput, 1)
@@ -131,6 +137,9 @@ class Trainer(object):
                 i_real_doutput = -1 * self.max0(-1 * i_real_doutput)
                 i_loss = (i_fake_doutput - i_real_doutput).mean() * self.iv
             i_loss.backward()
+
+            del i_xreal, i_yreal, i_xfake, i_yfake
+            del i_real_doutput, i_loss_real, i_fake_doutput, i_loss_fake
 
         d_loss = torch.from_numpy(np.array([0.]))
         # print(self.dv)

@@ -30,12 +30,16 @@ torch.manual_seed(0)
 parser = argparse.ArgumentParser(
     description='Train a GAN with different regularization strategies.')
 parser.add_argument('config', type=str, help='Path to config file.')
+parser.add_argument('--oldmodel', type=str, help='Path to previous file.')
 parser.add_argument('--no-cuda', action='store_true', help='Do not use cuda.')
 parser.add_argument('-key', type=str, default='', help='')
 args = parser.parse_args()
 
 config = load_config(args.config, 'configs/default.yaml')
 is_cuda = (torch.cuda.is_available() and not args.no_cuda)
+config['training']['nworkers'] = 16
+config['training']['backup_every'] = 3600 * 8
+# config['training']['iv'] = 0
 
 # Short hands
 batch_size = config['training']['batch_size']

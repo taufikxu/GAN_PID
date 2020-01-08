@@ -42,14 +42,14 @@ training:
   equalize_lr: false
   model_file: model.pt
 
-  out_dir: output/
-  out_basename: imagenet_standard_conditional
+  out_dir: /home/kunxu/output/
+  out_basename: imagenet_standard_conditional-20
   gan_type: standard
   reg_type: none
   reg_param: 10.
   pid_type: square
   pv: 1.
-  iv: 10.
+  iv: 20.
   dv: 0.
   batch_size: 128
   i_size: 128 ## related to batch_size
