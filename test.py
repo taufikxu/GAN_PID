@@ -3,6 +3,7 @@ import os
 from os import path
 import copy
 from tqdm import tqdm
+import numpy as np
 import torch
 from torch import nn
 from gan_training import utils
@@ -18,6 +19,7 @@ parser = argparse.ArgumentParser(
     description='Test a trained GAN and create visualizations.'
 )
 parser.add_argument('config', type=str, help='Path to config file.')
+parser.add_argument('--oldmodel', type=str, help='Path to oldmodel.')
 parser.add_argument('--no-cuda', action='store_true', help='Do not use cuda.')
 
 args = parser.parse_args()
@@ -87,7 +89,7 @@ evaluator = Evaluator(generator_test, zdist, ydist,
                       batch_size=batch_size, device=device)
 
 # Load checkpoint if existant
-load_dict = checkpoint_io.load(model_file)
+load_dict = checkpoint_io.load(args.oldmodel)
 it = load_dict.get('it', -1)
 epoch_idx = load_dict.get('epoch_idx', -1)
 
@@ -103,6 +105,16 @@ ztest = zdist.sample((sample_size,))
 x = evaluator.create_samples(ztest)
 utils.save_images(x, path.join(img_all_dir, '%08d.png' % it),
                   nrow=sample_nrow)
+
+img_list = []
+for i in range(500):
+    ztest = zdist.sample((100,))
+    x = evaluator.create_samples(ztest)
+    img_list.append(x.cpu().numpy())
+img_list = np.concatenate(img_list, axis=0)
+print(img_list.shape)
+np.save("gen.npy", img_list)
+
 if config['test']['conditional_samples']:
     for y_inst in tqdm(range(nlabels)):
         x = evaluator.create_samples(ztest, y_inst)

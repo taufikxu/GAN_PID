@@ -81,7 +81,6 @@ class Trainer(object):
         self.d_optimizer.zero_grad()
 
         reg_d = self.config['training']['regularize_output_d']
-
         d_real = self.discriminator(x_real, y)
         dloss_real = self.compute_loss(d_real, 1) * self.pv
         if reg_d > 0.:
@@ -102,14 +101,13 @@ class Trainer(object):
         if self.iv > 0:
             # i_factor = self.config['training']['i_buffer_factor']
             i_store = self.config['training']['i_buffer_onestep']
-            xtmp = x_real.data.cpu().detach().numpy()
-            ytmp = y.data.cpu().detach().numpy()
+            xtmp = x_real.detach().cpu().numpy()
+            ytmp = y.detach().cpu().numpy()
             self.i_real_queue.set_data(xtmp, ytmp)
-            del xtmp, ytmp
-            xtmp = x_fake.data.cpu().detach().numpy()
-            ytmp = y.data.cpu().detach().numpy()
+
+            xtmp = x_fake.detach().cpu().numpy()
+            ytmp = y.detach().cpu().numpy()
             self.i_fake_queue.set_data(xtmp, ytmp)
-            del xtmp, ytmp
 
             i_xreal, i_yreal = self.i_real_queue.get_data()
             i_xfake, i_yfake = self.i_fake_queue.get_data()
@@ -137,9 +135,6 @@ class Trainer(object):
                 i_real_doutput = -1 * self.max0(-1 * i_real_doutput)
                 i_loss = (i_fake_doutput - i_real_doutput).mean() * self.iv
             i_loss.backward()
-
-            del i_xreal, i_yreal, i_xfake, i_yfake
-            del i_real_doutput, i_loss_real, i_fake_doutput, i_loss_fake
 
         d_loss = torch.from_numpy(np.array([0.]))
         # print(self.dv)
@@ -171,12 +166,10 @@ class Trainer(object):
                 self.d_previous_y = y
 
         self.d_optimizer.step()
-
         toggle_grad(self.discriminator, False)
 
         # Output
         dloss = (dloss_real + dloss_fake)
-
         return dloss.item(), d_loss.item(), i_loss.item()
 
     def compute_loss(self, d_out, target, is_generator=False):

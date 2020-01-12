@@ -5,7 +5,7 @@ data:
   lsun_categories_train: [bedroom_train]
   lsun_categories_test: [bedroom_test]
   img_size: 128
-  nlabels: 1000
+  nlabels: 1
 generator:
   name: resnet2
   kwargs:
@@ -42,14 +42,14 @@ training:
   equalize_lr: false
   model_file: model.pt
 
-  out_dir: /home/kunxu/output/
-  out_basename: imagenet_standard_conditional-20
-  gan_type: standard
+  out_dir: ./output/
+  out_basename: imagenet_wgan_unconditional-100
+  gan_type: wgan
   reg_type: none
   reg_param: 10.
   pid_type: square
   pv: 1.
-  iv: 20.
+  iv: 100.
   dv: 0.
   batch_size: 128
   i_size: 128 ## related to batch_size

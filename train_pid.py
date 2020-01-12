@@ -37,9 +37,6 @@ args = parser.parse_args()
 
 config = load_config(args.config, 'configs/default.yaml')
 is_cuda = (torch.cuda.is_available() and not args.no_cuda)
-config['training']['nworkers'] = 16
-config['training']['backup_every'] = 3600 * 8
-# config['training']['iv'] = 0
 
 # Short hands
 batch_size = config['training']['batch_size']
@@ -153,7 +150,7 @@ tstart = t0 = time.time()
 
 # Load checkpoint if it exists
 try:
-    load_dict = checkpoint_io.load(model_file)
+    load_dict = checkpoint_io.load(args.oldmodel)
 except FileNotFoundError:
     it = epoch_idx = -1
     print("No loaded model, from initialization")
@@ -261,12 +258,12 @@ while epoch_idx < 1600:
             checkpoint_io.save('model_%08d.pt' % it, it=it)
             logger.save_stats('stats_%08d.p' % it)
 
-        # (iv) Save checkpoint if necessary
-        # if time.time() - t0 > save_every:
-        #     text_logger.info('Saving checkpoint...')
-        #     checkpoint_io.save(model_file, it=it)
-        #     logger.save_stats('stats.p')
-        #     t0 = time.time()
+        # # (iv) Save checkpoint if necessary
+        if time.time() - t0 > save_every:
+            text_logger.info('Saving checkpoint...')
+            checkpoint_io.save(model_file, it=it)
+            logger.save_stats('stats.p')
+            t0 = time.time()
 
         #     if (restart_every > 0 and t0 - tstart > restart_every):
         #         exit(3)
