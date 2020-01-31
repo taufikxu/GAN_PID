@@ -30,7 +30,10 @@ torch.manual_seed(0)
 parser = argparse.ArgumentParser(
     description='Train a GAN with different regularization strategies.')
 parser.add_argument('config', type=str, help='Path to config file.')
-parser.add_argument('--oldmodel', type=str, help='Path to previous file.')
+parser.add_argument('--oldmodel',
+                    type=str,
+                    default='',
+                    help='Path to previous file.')
 parser.add_argument('--no-cuda', action='store_true', help='Do not use cuda.')
 parser.add_argument('-key', type=str, default='', help='')
 args = parser.parse_args()
@@ -47,8 +50,7 @@ save_every = config['training']['save_every']
 backup_every = config['training']['backup_every']
 sample_nlabels = config['training']['sample_nlabels']
 
-out_dir = "{}{}_{}_{}".format(config['training']['out_dir'],
-                              time.strftime("%Y-%m-%d-%H-%M-%S"),
+out_dir = "{}{}_{}_{}".format(config['training']['out_dir'], "Final",
                               config['training']['out_basename'], args.key)
 checkpoint_dir = path.join(out_dir, 'chkpts')
 
@@ -150,7 +152,9 @@ tstart = t0 = time.time()
 
 # Load checkpoint if it exists
 try:
-    load_dict = checkpoint_io.load(args.oldmodel)
+    load_dict = dict({})
+    if len(args.oldmodel) > 0:
+        load_dict = checkpoint_io.load(args.oldmodel)
 except FileNotFoundError:
     it = epoch_idx = -1
     print("No loaded model, from initialization")

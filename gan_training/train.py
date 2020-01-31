@@ -97,6 +97,11 @@ class Trainer(object):
             loss = F.binary_cross_entropy_with_logits(d_out, targets)
         elif self.gan_type == 'wgan':
             loss = (2 * target - 1) * d_out.mean()
+        elif self.gan_type == 'hinge':
+            if is_generator is False:
+                loss = (F.relu(1 + (2 * target - 1) * d_out)).mean()
+            else:
+                loss = ((2 * target - 1) * d_out).mean()
         elif self.gan_type == "lsgan":
             target = target * 2 - 1
             loss = ((d_out - target)**2).mean()

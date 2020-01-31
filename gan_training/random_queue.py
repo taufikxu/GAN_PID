@@ -12,7 +12,7 @@ class Random_queue(object):
     def set_data(self, samples, y=None):
         if len(self.data) == 0:
             shape = samples.shape[1:]
-            self.data = np.zeros([self.capacity, shape[0], shape[1], shape[2]])
+            self.data = np.zeros([self.capacity] + list(shape))
             if y is not None:
                 self.label = np.zeros([self.capacity])
 
