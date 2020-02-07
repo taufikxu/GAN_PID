@@ -50,7 +50,7 @@ save_every = config['training']['save_every']
 backup_every = config['training']['backup_every']
 sample_nlabels = config['training']['sample_nlabels']
 
-out_dir = "{}{}_{}_{}".format(config['training']['out_dir'], "Final",
+out_dir = "{}{}_{}_{}".format(config['training']['out_dir'], "Plot",
                               config['training']['out_basename'], args.key)
 checkpoint_dir = path.join(out_dir, 'chkpts')
 

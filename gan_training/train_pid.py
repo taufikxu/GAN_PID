@@ -100,7 +100,7 @@ class Trainer(object):
         i_loss = torch.from_numpy(np.array([0.]))
         if self.iv > 0:
             # i_factor = self.config['training']['i_buffer_factor']
-            i_store = self.config['training']['i_buffer_onestep']
+            # i_store = self.config['training']['i_buffer_onestep']
             xtmp = x_real.detach().cpu().numpy()
             ytmp = y.detach().cpu().numpy()
             self.i_real_queue.set_data(xtmp, ytmp)
@@ -195,6 +195,7 @@ class Trainer(object):
             else:
                 loss = (d_out**2).mean()
         elif self.gan_type == 'lsgan2':
+            target -= 0.5
             loss = ((d_out - target)**2).mean()
         else:
             raise NotImplementedError

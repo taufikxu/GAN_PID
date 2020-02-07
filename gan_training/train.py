@@ -112,6 +112,7 @@ class Trainer(object):
             else:
                 loss = (d_out**2).mean()
         elif self.gan_type == 'lsgan2':
+            target -= 0.5
             loss = ((d_out - target)**2).mean()
         else:
             raise NotImplementedError
