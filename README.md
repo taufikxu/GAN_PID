@@ -23,4 +23,4 @@ For our proposed method, use the following commands:
 
 'python train_pid.py ./config/celeba_pid.yaml'
 
-The hyperparameters can be adjusted in the corresponding config files. Specifically, the 'iv' denotes the coefficient for negative feedback.
+The hyperparameters can be adjusted in the corresponding config files. Specifically, the 'iv' denotes the coefficient for CLC.
